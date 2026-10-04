@@ -1,0 +1,61 @@
+# wowTest — Architecture
+
+A client + server mod for vanilla World of Warcraft 1.12, built on forks of two open-source projects:
+
+- **Client:** [`client/`](client) — a fork of [benilla](https://github.com/samwhosung/benilla), a from-scratch Rust + Bevy reimplementation of the 1.12.1 client. Users must supply their own legally-obtained 1.12.1 client data; no Blizzard assets are bundled here.
+- **Server:** [`server/`](server) — a fork of [vMaNGOS](https://github.com/vmangos/core) (branch `development`), a vanilla-only (1.2–1.12) server core.
+
+Both are real GitHub forks (not vendored copies), wired in as git submodules, so upstream history and the ability to pull/PR back (where in scope — see "Upstream divergence" below) are preserved.
+
+## Clean-room policy
+
+Turtle WoW's server source was leaked via an unauthorized security breach and is mirrored on GitHub by third parties. This project does not read, clone, reference, or derive any code from that leak. Where Turtle WoW's publicly-documented *player-facing behavior* inspired a feature (the companion-pet collection tab, see below), the implementation here is designed fresh from vanilla's own public client/server mechanics — this is ordinary game-design parity, the same way every private server reimplements Blizzard's own retail features, not a derivative of anyone else's code.
+
+## Asset policy
+
+v1 uses vanilla-only client assets (existing spell icons, existing creature models for companion critters). No MoP-era or other expansion assets are used. Every end user supplies their own 1.12.1 client; nothing proprietary is committed to this repo.
+
+## Upstream divergence
+
+benilla's own `AGENTS.md` scopes it as "a faithful, modern implementation of [1.12.1], not a place to get creative." The companion-pet collection tab (and anything pet-battle related later) is a later-expansion-era feature and intentionally out of scope for upstream benilla. This fork will diverge permanently on these features — they are not intended to be upstreamed. Bug fixes/compatibility work unrelated to new features may still be upstreamed where it makes sense.
+
+## Milestone 1: Companion Pet Collection (character-bound)
+
+**Goal:** rework vanity/companion pets from "permanent bag-item toggle" into a one-time-learn, character-bound collection accessible from a dedicated spellbook tab — the same underlying concept MoP's actual Pet Journal was later built from, scoped per-character (not account-wide) per explicit design choice.
+
+### Current vanilla mechanic (baseline)
+
+A companion item (e.g. "Cat Carrier (Black Tabby)", item 8491) has an on-use spell (e.g. spell 10675) with `spelltrigger_1 = 0` (infinite charges — the item is never consumed). That spell uses `SPELL_EFFECT_SUMMON_CRITTER` (effect 97, `Spell::EffectSummonCritter`), which toggles a non-combat mini-pet (`player->_SetMiniPet`) backed by a `creature_template` entry. Nothing is persisted between summons; the critter is purely re-spawned from the item each time.
+
+### New mechanic
+
+A two-spell pattern, both pure `spell_template` SQL rows — no client DBC patch required as long as existing icon IDs are reused:
+
+1. **Learn spell** — the item's on-use spell changes to use `SPELL_EFFECT_LEARN_SPELL` (`Spell::EffectLearnSpell`), pointing at the Summon spell below. The item is consumed on use (standard "recipe" semantics already used elsewhere in vanilla — no new server mechanic needed).
+2. **Summon spell** — a new spell, one per companion, keeping the existing `SPELL_EFFECT_SUMMON_CRITTER` effect pointing at the same `creature_template` entry the item already used. This is what gets permanently learned.
+
+Reserved spell-ID range: companion Summon spells live in a dedicated custom ID block (e.g. `60000–60999`, exact range TBD when we touch `spell_template` for real) that the client-side tab logic (below) recognizes directly — this sidesteps needing a `skill_line_ability`/`SkillLine.dbc` entry for tab placement at all.
+
+Persistence is automatically character-bound: learned spells land in `character_spell` (guid-keyed), and this core has no account-wide data table to accidentally share across characters.
+
+### Client: synthetic "Pets" tab
+
+benilla computes spellbook tab grouping **natively in Rust** (`crates/benilla-app/src/ui_spellbook.rs`), not via Lua/DBC lookup like stock FrameXML — tabs are built from the player's known-spell list cross-referenced against `SkillLine.dbc`. We add a synthetic tab that instead buckets any known spell whose ID falls in the reserved companion range above, bypassing `SkillLine.dbc` for this tab's membership entirely. This keeps the feature fully within the vanilla-only asset policy (no DBC patch).
+
+Clicking an entry in this tab must cast/summon directly rather than pick the spell up for action-bar placement (stock spellbook behavior). benilla already has a native `CastSpell` path (`crates/benilla-app/src/ui_spellbook.rs::cast_spell`) used this way by the existing hunter pet-skill-book tab (`ui_pet_book.rs`) — the new Pets tab's button template calls that directly instead of `PickupSpell`.
+
+### Open items to verify during implementation
+
+- How a summoned critter actually renders/follows the player client-side today, since no "companion" concept exists anywhere in benilla yet (likely generic NPC-follow rendering already works, since the client has no special-cased concept to be missing — but this needs confirming against real gameplay, not assumed).
+
+## Build order (milestone 1)
+
+1. Pick one existing companion (Black Tabby Cat) as the pilot. Add its Learn + Summon `spell_template` rows and repoint the item's on-use spell. Verify via server console/DB: using the item once teaches the Summon spell and consumes the item.
+2. Add the synthetic "Pets" tab to the client spellbook UI. Confirm the learned Summon spell appears there after re-login.
+3. Wire the Pets tab's button template to `CastSpell` instead of `PickupSpell`. Confirm clicking it summons/dismisses the critter with no bag item present.
+4. Verify the summoned critter renders and follows the player correctly; fix client-side if special-casing turns out to be needed.
+5. Migrate the remaining stock companion pets to the new two-spell pattern (bulk, data-only SQL once the pattern is proven on one pet).
+
+## Later milestones (deferred, not yet designed in detail)
+
+6. Pet battle system proper, built on top of this collection: a pet-battle icon above wild critters, right-click to enter battle, battle GUI, turn-based combat engine, abilities, camera transition. This is a substantially larger effort and will get its own architecture pass once milestone 1 is solid — treat the above as the foundation, not a stepping stone to be revisited later.
