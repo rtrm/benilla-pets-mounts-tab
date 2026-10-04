@@ -8,7 +8,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design, clean-room/asset pol
 
 Milestone 1 — Companion Pet Collection (character-bound):
 
-- [ ] 1. Pilot one companion (Black Tabby Cat) through the new Learn/Summon two-spell pattern on the server
+- [x] 1. Pilot one companion (Black Tabby Cat) through the new Learn/Summon two-spell pattern on the server (written, not yet tested against a live DB — see `server/sql/migrations/20261004120000_world.sql`)
 - [ ] 2. Add a synthetic "Pets" tab to the client spellbook UI
 - [ ] 3. Wire the Pets tab to cast directly instead of pick-up-for-actionbar
 - [ ] 4. Verify summoned-critter client rendering/follow behavior
