@@ -8,11 +8,13 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design, clean-room/asset pol
 
 Milestone 1 — Companion Pet Collection (character-bound):
 
-- [x] 1. Pilot one companion (Black Tabby Cat) through the new Learn/Summon two-spell pattern on the server (written, not yet tested against a live DB — see `server/sql/migrations/20261004120000_world.sql`)
-- [ ] 2. Add a synthetic "Pets" tab to the client spellbook UI
-- [ ] 3. Wire the Pets tab to cast directly instead of pick-up-for-actionbar
-- [ ] 4. Verify summoned-critter client rendering/follow behavior
-- [ ] 5. Migrate remaining stock companion pets to the new pattern
+- [x] 1. Pilot one companion (Black Tabby Cat) through the new Learn/Summon two-spell pattern on the server (verified live: learn, consume, cast, sound — see `server/sql/migrations/20261004120000_world.sql`)
+- [x] 2. Add a synthetic "Pets" tab to the client spellbook UI
+- [x] 3. Wire the Pets tab to cast directly instead of pick-up-for-actionbar
+- [x] 4. Verify summoned-critter client rendering/follow behavior (confirmed live: summons, follows, dismisses on recast)
+- [x] 5. Migrate remaining stock companion pets to the new pattern (all 69 real vanilla companion items — see `server/sql/migrations/20261005230630_world.sql`)
+
+Milestone 1 is complete. Next up is the separately-scoped pet battle milestone (see below).
 
 Pet battles proper (icon, right-click, GUI, abilities, camera) are a later, separately-scoped milestone — see ARCHITECTURE.md.
 
