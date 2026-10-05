@@ -42,7 +42,7 @@ Persistence is automatically character-bound: learned spells land in `character_
 
 benilla computes spellbook tab grouping **natively in Rust** (`crates/benilla-app/src/ui_spellbook.rs`), not via Lua/DBC lookup like stock FrameXML — tabs are built from the player's known-spell list cross-referenced against `SkillLine.dbc`. We add a synthetic tab that instead buckets any known spell whose ID falls in the reserved companion range above, bypassing `SkillLine.dbc` for this tab's membership entirely. This keeps the feature fully within the vanilla-only asset policy (no DBC patch).
 
-Clicking an entry in this tab must cast/summon directly rather than pick the spell up for action-bar placement (stock spellbook behavior). benilla already has a native `CastSpell` path (`crates/benilla-app/src/ui_spellbook.rs::cast_spell`) used this way by the existing hunter pet-skill-book tab (`ui_pet_book.rs`) — the new Pets tab's button template calls that directly instead of `PickupSpell`.
+Clicking an entry in this tab casts/summons it directly, exactly like every other spell in every other tab does — this needed no special-casing at all. Confirmed by reading the extracted real `SpellBookFrame.lua` (`SpellButton_OnClick`) directly: a plain click already calls `CastSpell` for any spell in the stock game; only a drag gesture or a shift-click calls `PickupSpell` to place it on the action bar. An earlier version of this doc assumed clicking needed a custom `PickupSpell` override to cast directly (and an implementation briefly shipped one) — that assumption was wrong, confirmed live: the override did nothing for the click case (already handled by stock `CastSpell` dispatch) while breaking the legitimate drag/shift-click pickup path, which is also why this tab's spells can be dragged to the action bar like any other, same as stock behavior, not a separate feature.
 
 ### Open items to verify during implementation
 
@@ -52,7 +52,7 @@ Clicking an entry in this tab must cast/summon directly rather than pick the spe
 
 1. Pick one existing companion (Black Tabby Cat) as the pilot. Add its Learn + Summon `spell_template` rows and repoint the item's on-use spell. Verify via server console/DB: using the item once teaches the Summon spell and consumes the item.
 2. Add the synthetic "Pets" tab to the client spellbook UI. Confirm the learned Summon spell appears there after re-login.
-3. Wire the Pets tab's button template to `CastSpell` instead of `PickupSpell`. Confirm clicking it summons/dismisses the critter with no bag item present.
+3. Confirm clicking the Pets tab's entry summons/dismisses the critter with no bag item present (needs no implementation of its own — stock `SpellButton_OnClick` already casts on a plain click for any spell).
 4. Verify the summoned critter renders and follows the player correctly; fix client-side if special-casing turns out to be needed.
 5. Migrate the remaining stock companion pets to the new two-spell pattern (bulk, data-only SQL once the pattern is proven on one pet).
 
