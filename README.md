@@ -1,6 +1,6 @@
 # wowTest
 
-A client + server mod for vanilla World of Warcraft 1.12, adding a character-bound companion pet collection system as a foundation for a future pet battle system.
+A client + server mod for vanilla World of Warcraft 1.12, adding character-bound companion pet and mount collections as a foundation for a future pet battle system.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design, clean-room/asset policy, and build order.
 
@@ -14,7 +14,11 @@ Milestone 1 — Companion Pet Collection (character-bound):
 - [x] 4. Verify summoned-critter client rendering/follow behavior (confirmed live: summons, follows, dismisses on recast)
 - [x] 5. Migrate remaining stock companion pets to the new pattern (all 69 real vanilla companion items — see `server/sql/migrations/20261005230630_world.sql`)
 
-Milestone 1 is complete. Next up is the separately-scoped pet battle milestone (see below).
+Milestone 1 is complete.
+
+Milestone 2 — Mount Collection (character-bound), the same pattern applied to mounts:
+
+- [x] All 112 real vanilla mount items migrated to Learn/Summon (a full clone of each stock mount spell, not a template — see `server/sql/migrations/20261006003000_world.sql`), a synthetic "Mounts" tab added to the client, click-to-cast wired, and the trainer-style learn visual carried over from milestone 1 — pending live in-game confirmation.
 
 Pet battles proper (icon, right-click, GUI, abilities, camera) are a later, separately-scoped milestone — see ARCHITECTURE.md.
 

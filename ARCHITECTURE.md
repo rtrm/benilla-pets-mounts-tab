@@ -56,6 +56,24 @@ Clicking an entry in this tab must cast/summon directly rather than pick the spe
 4. Verify the summoned critter renders and follows the player correctly; fix client-side if special-casing turns out to be needed.
 5. Migrate the remaining stock companion pets to the new two-spell pattern (bulk, data-only SQL once the pattern is proven on one pet).
 
+## Milestone 2: Mount Collection (character-bound)
+
+**Goal:** the same treatment as milestone 1, for mounts: a one-time-learn, character-bound collection in its own spellbook tab, instead of a permanent bag-item toggle.
+
+### Current vanilla mechanic (baseline)
+
+A mount item (e.g. "Brown Horse Summoning", item 875) has an on-use spell (e.g. spell 458) applying `SPELL_AURA_MOUNTED` (aura 78, `effect1 = SPELL_EFFECT_APPLY_AURA`) plus a `SPELL_AURA_MOD_INCREASE_MOUNTED_SPEED` aura (32) on `effect2` for the speed bonus — real per-mount variation (speed tier, level requirement, duration, flavor text) lives on this spell, unlike a critter's largely-uniform summon effect. `spelltrigger_1 = 0` (infinite charges).
+
+### New mechanic
+
+The same Learn/Summon two-spell pattern as milestone 1, with one real difference: a mount's Summon spell is a **full clone of the original stock spell** (every column, not a generic template) — speed/level/duration/flavor text all carry real per-mount data a shared template would flatten. Only `entry` and `name` change. The Teach spell is the same generic `SPELL_EFFECT_LEARN_SPELL` wrapper as a companion pet's.
+
+Reserved spell-ID range: `61000–61999`, a separate block from companion pets' `60000–60999` so the client can tell a Pets-tab entry from a Mounts-tab entry with a plain id-range check, rather than one combined range needing a second signal.
+
+### Client: synthetic "Mounts" tab
+
+Exactly `synthetic_spells.rs`/the Pets tab's pattern, mirrored in a sibling module (`synthetic_mounts.rs`) and a second sentinel tab key in `ui_spellbook.rs`'s `build_book`, rather than generalizing the two into one - the data shape differs enough (full-clone vs. template) that forcing one abstraction over both would cost more than the duplication does.
+
 ## Later milestones (deferred, not yet designed in detail)
 
-6. Pet battle system proper, built on top of this collection: a pet-battle icon above wild critters, right-click to enter battle, battle GUI, turn-based combat engine, abilities, camera transition. This is a substantially larger effort and will get its own architecture pass once milestone 1 is solid — treat the above as the foundation, not a stepping stone to be revisited later.
+Pet battle system proper, built on top of the companion-pet collection: a pet-battle icon above wild critters, right-click to enter battle, battle GUI, turn-based combat engine, abilities, camera transition. This is a substantially larger effort and will get its own architecture pass once it's picked up — treat milestones 1-2 as the foundation, not a stepping stone to be revisited later.
